@@ -132,23 +132,19 @@ int LaneDetector::getDirection()
     double rangeX = sourceImage.cols / 12;
     double rangeY = sourceImage.rows / 3;
     
-    if (y < centerY + rangeY)
+    if (x < centerX - rangeX)
     {
-        if (x < centerX - rangeX)
-        {
-            if (y > centerY)
-                return Direction::TURN_LEFT;
-            else
-                return Direction::GO_LEFT;
-        }
-        else if (x > centerX + rangeX)
-        {
-
-            if (y > centerY)
-                return Direction::TURN_RIGHT;
-            else
-                return Direction::GO_RIGHT;
-        }
+        if (y > centerY + rangeY)
+            return Direction::TURN_LEFT;
+        else if (y > centerY - rangeY / 3)
+            return Direction::GO_LEFT;
+    }
+    else if (x > centerX + rangeX)
+    {
+        if (y > centerY + rangeY)
+            return Direction::TURN_RIGHT;
+        else if (y > centerY - rangeY / 3)
+            return Direction::GO_RIGHT;
     }
 
     return Direction::FORWARD;

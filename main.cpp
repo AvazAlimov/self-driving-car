@@ -14,7 +14,7 @@
 #include "Permission.hpp"
 #include "TrafficLightDetector.hpp"
 
-#define MAX_SPEED 40
+#define MAX_SPEED 50
 #define MIN_SPEED 30
 
 using namespace cv;
@@ -26,6 +26,12 @@ bool captured = false;
 bool finish = false;
 RaspiCam_Cv camera;
 Mat image;
+
+Permission trafficLightPermissions(0);
+Permission lanePermissions(2);
+Permission irsPermissions(2);
+Permission tracerPermissions(2);
+Permission signPermissions(2);
 
 void exitSignalHandler(int signalNumber);
 void captureImage();
@@ -40,12 +46,6 @@ void move(int direction);
 int main()
 {
 	signal(SIGINT, exitSignalHandler);
-	
-	Permission trafficLightPermissions(0);
-	Permission lanePermissions(2);
-	Permission irsPermissions(2);
-	Permission tracerPermissions(2);
-	Permission signPermissions(2);
 	
 	thread imageCapturerThread(captureImage);
 	thread trafficLightDetectionThread(detectTrafficLight, ref(trafficLightPermissions));
@@ -185,7 +185,8 @@ void listenSigns(Permission &permission)
 				} else if(detectedSign == Sign::SIGN_PEDESTRIAN) {
 					cout << "PEDESTRIAN ENTER" << endl;
 					motor.setSpeed(MIN_SPEED);
-					delay(2000);
+					while(tracerPermissions.direction != Direction::BACKWARD);
+					delay(1000);
 					motor.setSpeed(MAX_SPEED);
 					cout << "PEDESTRIAN LEAVE" << endl;
 				}
