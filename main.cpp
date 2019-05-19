@@ -14,16 +14,19 @@
 #include "Permission.hpp"
 #include "TrafficLightDetector.hpp"
 
-#define MAX_SPEED 50
-#define MIN_SPEED 30
+#define MAX_SPEED 40
+#define MIN_SPEED 25
 
 using namespace cv;
 using namespace std;
 using namespace raspicam;
 
-MotorManager motor(0, 100, MAX_SPEED, 70);
 bool captured = false;
 bool finish = false;
+bool stopSignFlag = false;
+int numberOfDetectedObstacles = 0;
+
+MotorManager motor(0, 100, MAX_SPEED, 70);
 RaspiCam_Cv camera;
 Mat image;
 
@@ -42,6 +45,7 @@ void listenTracers(Permission &permission);
 void listenSigns(Permission &permission);
 void listenUltrasonic(Permission &permission);
 void move(int direction);
+void test();
 
 int main()
 {
@@ -57,6 +61,13 @@ int main()
 
 	while(!finish)
 	{
+		if(!signPermissions.canGo)
+		{
+			motor.stop();
+			delay(5000);
+			signPermissions.canGo = true;
+		}
+		
 		while(!trafficLightPermissions.canGo)
 		{
 			motor.stop();
@@ -69,15 +80,22 @@ int main()
 			tracerPermissions.direction == Direction::TURN_RIGHT
 		)
 		{
+			if(tracerPermissions.direction == Direction::BACKWARD)
+			{
+				cout << "Skipping line" << endl;
+				cout << "Lane direction " << lanePermissions.direction << endl;
+			}
 			move(tracerPermissions.direction);
 		}
 		
 		// Move away from side obstacles
+		// FIXME: - Work in progress
 		while(
 			irsPermissions.direction == Direction::BACKWARD
 		)
 		{
-			move(irsPermissions.direction);
+			// move(irsPermissions.direction);
+			test();
 		}
 		
 		
@@ -175,13 +193,23 @@ void listenSigns(Permission &permission)
 				int detectedSign = detectedSigns[0];
 				
 				if(detectedSign == Sign::SIGN_LEFT) {
-					//leftSignAction();
+					// FIXME: 
+					cout << "LEFT DETECTED" << endl;
 				} else if(detectedSign == Sign::SIGN_RIGHT) {
-					//rightSignAction();
+					// FIXME:
+					cout << "RIGHT DETECTED" << endl;
 				} else if(detectedSign == Sign::SIGN_PARKING) {
-					//parkingSignAction();
+					// FIXME:
+					cout << "PARKING DETECTED" << endl;
+					motor.stop();
+					finish = true;
 				} else if(detectedSign == Sign::SIGN_STOP) {
-					//stopSignAction();
+					if (!stopSignFlag)
+					{
+						stopSignFlag = true;
+						permission.canGo = false;
+						cout << "STOP DETECTED" << endl;
+					}
 				} else if(detectedSign == Sign::SIGN_PEDESTRIAN) {
 					cout << "PEDESTRIAN ENTER" << endl;
 					motor.setSpeed(MIN_SPEED);
@@ -230,5 +258,53 @@ void move(int direction)
 		default:
 			motor.stop();
 			break;
+	}
+}
+
+
+// MARK: - Obstacle turnaround
+
+void test() {
+	double delayTime = 600;
+	double coefficient = 0.8;
+	
+	// MARK: - Pedestrian Girl
+	
+	if(numberOfDetectedObstacles == 0) {
+		cout<<"Obstacle #0 - Waiting 6 seconds\n";
+		int pedestrianTimeOut = 6000;
+		motor.stop();
+		delay(pedestrianTimeOut);
+	}
+	
+	// MARK: - Obstacle #1
+	
+	else if(numberOfDetectedObstacles == 1) {
+		cout<<"Obstacle #1 - turnaround left\n";
+		motor.turnLeft();
+		delay(delayTime);
+		motor.goForward();
+		delay(delayTime*coefficient);
+		motor.turnRight();
+	}
+	
+	// MARK: - Obstacle #2
+	
+	else if(numberOfDetectedObstacles == 2) {
+		cout<<"Obstacle #2 - turnaround right\n";
+		motor.turnRight();
+		delay(delayTime);
+		motor.goForward();
+		delay(delayTime*coefficient);
+		motor.turnLeft();
+	}
+	
+	numberOfDetectedObstacles++;
+	
+	// FIXME - Obstacle Counter Reset
+	
+	if(numberOfDetectedObstacles > 2) {
+		cout<<"Obstacle Counter Reset\n";
+		numberOfDetectedObstacles = 0;
 	}
 }
