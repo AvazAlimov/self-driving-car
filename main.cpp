@@ -24,6 +24,9 @@ using namespace raspicam;
 bool captured = false;
 bool finish = false;
 bool stopSignFlag = false;
+bool turnDetected = false;
+bool turnSignFlag = false;
+bool parkingSignFlag = false;
 int numberOfDetectedObstacles = 0;
 
 MotorManager motor(0, 100, MAX_SPEED, 70);
@@ -61,6 +64,28 @@ int main()
 
 	while(!finish)
 	{
+		if (parkingSignFlag)
+		{
+			while(tracerPermissions.direction != Direction::BACKWARD)
+			{
+				move(lanePermissions.direction);	
+			}
+			move(Direction::FORWARD);
+			delay(500);
+			break;
+		}
+		
+		if(turnDetected && !turnSignFlag)
+		{
+			move(Direction::FORWARD);
+			delay(200);
+			move(signPermissions.direction);
+			delay(700);
+			motor.stop();
+			turnDetected = false;
+			turnSignFlag = true;
+		}
+		
 		if(!signPermissions.canGo)
 		{
 			motor.stop();
@@ -107,6 +132,8 @@ int main()
 		
 		move(direction);
 	}
+	motor.stop();
+	exitSignalHandler(0);
 	return 0;
 }
 
@@ -193,16 +220,25 @@ void listenSigns(Permission &permission)
 				int detectedSign = detectedSigns[0];
 				
 				if(detectedSign == Sign::SIGN_LEFT) {
-					// FIXME: 
-					cout << "LEFT DETECTED" << endl;
+					if (!turnDetected)
+					{
+						turnDetected = true;
+						cout << "LEFT DETECTED" << endl;
+						permission.direction = Direction::TURN_LEFT;
+					}
 				} else if(detectedSign == Sign::SIGN_RIGHT) {
-					// FIXME:
-					cout << "RIGHT DETECTED" << endl;
+					if (!turnDetected)
+					{
+						turnDetected = true;
+						cout << "RIGHT DETECTED" << endl;
+						permission.direction = Direction::TURN_RIGHT;
+					}
 				} else if(detectedSign == Sign::SIGN_PARKING) {
-					// FIXME:
-					cout << "PARKING DETECTED" << endl;
-					motor.stop();
-					finish = true;
+					if(!parkingSignFlag)
+					{
+						cout << "PARKING DETECTED" << endl;
+						parkingSignFlag = true;
+					}
 				} else if(detectedSign == Sign::SIGN_STOP) {
 					if (!stopSignFlag)
 					{
@@ -265,7 +301,7 @@ void move(int direction)
 // MARK: - Obstacle turnaround
 
 void test() {
-	double delayTime = 600;
+	double delayTime = 1000;
 	double coefficient = 0.8;
 	
 	// MARK: - Pedestrian Girl
@@ -281,22 +317,46 @@ void test() {
 	
 	else if(numberOfDetectedObstacles == 1) {
 		cout<<"Obstacle #1 - turnaround left\n";
+		
+		motor.goBackward();
+		delay(700);
+		motor.turnLeft();
+		while(irsPermissions.direction == Direction::BACKWARD);
+		delay(400);
+		motor.goForward();
+		delay(700);
+		
+		/*
 		motor.turnLeft();
 		delay(delayTime);
 		motor.goForward();
 		delay(delayTime*coefficient);
 		motor.turnRight();
+		delay(delayTime);
+		*/
 	}
 	
 	// MARK: - Obstacle #2
 	
 	else if(numberOfDetectedObstacles == 2) {
 		cout<<"Obstacle #2 - turnaround right\n";
+		
+		motor.goBackward();
+		delay(700);
+		motor.turnRight();
+		while(irsPermissions.direction == Direction::BACKWARD);
+		delay(400);
+		motor.goForward();
+		delay(700);
+		
+		/*
 		motor.turnRight();
 		delay(delayTime);
 		motor.goForward();
 		delay(delayTime*coefficient);
 		motor.turnLeft();
+		delay(delayTime);
+		* */
 	}
 	
 	numberOfDetectedObstacles++;
