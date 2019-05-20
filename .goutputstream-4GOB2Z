@@ -63,13 +63,6 @@ int main()
 
 	while(true)
 	{
-		/*
-		while (!trafficLightPermissions.canGo)
-		{
-			motor.stop();
-		}
-		*/
-		
 		if (parkingSignFlag)
 		{
 			while(tracerPermissions.direction != Direction::BACKWARD)
@@ -84,9 +77,9 @@ int main()
 		if(turnDetected && !turnSignFlag)
 		{
 			move(Direction::FORWARD);
-			delay(800);
+			delay(700);
 			move(signPermissions.direction);
-			delay(1000);
+			delay(700);
 			motor.stop();
 			turnDetected = false;
 			turnSignFlag = true;
@@ -99,6 +92,13 @@ int main()
 			signPermissions.canGo = true;
 		}
 		
+		/*
+		while(!trafficLightPermissions.canGo)
+		{
+			motor.stop();
+			delay(1000);
+		}
+		*/
 		
 		// Turn back to lane
 		while(
@@ -107,7 +107,6 @@ int main()
 		)
 		{
 			move(tracerPermissions.direction);
-			delay(100);
 		}
 		
 		// Move away from obstacles
@@ -172,7 +171,7 @@ void detectTrafficLight(Permission &permission)
 	{
 		if(captured)
 		{
-			permission.canGo = !TrafficLightDetector(image).detect();
+			permission.canGo = true;//!TrafficLightDetector(image).detect();
 		}
 	}
 }
@@ -246,7 +245,7 @@ void listenSigns(Permission &permission)
 				}
 				else if(detectedSign == Sign::SIGN_PARKING)
 				{
-					if(!parkingSignFlag && turnSignFlag)
+					if(!parkingSignFlag && turnDetected)
 					{
 						cout << "PARKING DETECTED" << endl;
 						parkingSignFlag = true;
@@ -263,12 +262,14 @@ void listenSigns(Permission &permission)
 				} 
 				else if(detectedSign == Sign::SIGN_PEDESTRIAN)
 				{
+					int counter = 10000000;
 					cout << "PEDESTRIAN ENTER" << endl;
-					motor.setSpeed(50);
-					delay(1000);
 					motor.setSpeed(MIN_SPEED);
-					while(tracerPermissions.direction != Direction::BACKWARD);
-					delay(3000);
+					while(tracerPermissions.direction != Direction::BACKWARD && counter > 0)
+					{
+						counter--;
+					}
+					delay(1000);
 					motor.setSpeed(MAX_SPEED);
 					cout << "PEDESTRIAN LEAVE" << endl;
 				}
