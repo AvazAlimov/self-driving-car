@@ -58,18 +58,9 @@ int main()
 	thread irsListenerThread(listenIRs, ref(irsPermissions));
 	thread tracersListenerThread(listenTracers, ref(tracerPermissions));
 	thread signListenerThread(listenSigns, ref(signPermissions));
-	//thread trafficLightDetectionThread(detectTrafficLight, ref(trafficLightPermissions));
-	//thread ultrasonicListenerThread(listenUltrasonic, ref(permissions[3]));
 
 	while(true)
 	{
-		/*
-		while (!trafficLightPermissions.canGo)
-		{
-			motor.stop();
-		}
-		*/
-		
 		if (parkingSignFlag)
 		{
 			while(tracerPermissions.direction != Direction::BACKWARD)
@@ -99,48 +90,36 @@ int main()
 			signPermissions.canGo = true;
 		}
 		
-		
 		// Turn back to lane
-		while(
-			tracerPermissions.direction == Direction::TURN_LEFT ||
-			tracerPermissions.direction == Direction::TURN_RIGHT
-		)
+		while(tracerPermissions.direction == Direction::TURN_LEFT || 
+		      tracerPermissions.direction == Direction::TURN_RIGHT)
 		{
 			move(tracerPermissions.direction);
 			delay(100);
 		}
 		
 		// Move away from obstacles
-		while(
-			irsPermissions.direction == Direction::TURN_LEFT ||
-			irsPermissions.direction == Direction::TURN_RIGHT
-		)
+		while(irsPermissions.direction == Direction::TURN_LEFT ||
+		      irsPermissions.direction == Direction::TURN_RIGHT)
 		{
 			move(irsPermissions.direction);
 		}
-
 		
 		// Move away from side obstacles
-		// FIXME: - Work in progress
-		while(
-			irsPermissions.direction == Direction::BACKWARD
-		)
+		while(irsPermissions.direction == Direction::BACKWARD)
 		{
-			// move(irsPermissions.direction);
 			test();
 		}
-		
-		
-		// Stop if there is an obstacle at the front
-		//while(!permissions[3].canGo) motor.stop();
 		
 		// Get direction from lane detector
 		int direction = lanePermissions.direction;
 		
 		move(direction);
 	}
+	
 	motor.stop();
 	exitSignalHandler(0);
+	
 	return 0;
 }
 
@@ -156,13 +135,12 @@ void captureImage()
 	camera.set(CAP_PROP_FRAME_WIDTH, 640);
 	camera.set(CAP_PROP_FRAME_HEIGHT, 480);
 	camera.open();
+	
 	while(true)
 	{
 		camera.grab();
 		camera.retrieve(image);
 		captured = true;
-		//imshow("Original", image);
-		//waitKey(1);
 	}
 }
 
@@ -288,7 +266,6 @@ void listenUltrasonic(Permission &permission)
 
 void move(int direction)
 {
-	//direction = -1;
 	switch(direction)
 	{
 		case Direction::BACKWARD:
